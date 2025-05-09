@@ -5,15 +5,13 @@ from queue import PriorityQueue
 
 class AStar:
     def __init__(self, prm, c_start, c_goal):
-        pdb.set_trace()
-        self.nodes = self.prm.nodes 
-        self.connections = self.prm.connections
-        self.nodes_kd = self.prm.valid_kd
-        self.start = self.prm.add(start)
-        self.goal = self.prm.add(goal)
-        self.path = self.search()
+        self.nodes = prm.nodes 
+        self.connections = prm.connections
+        self.nodes_kd = prm.valid_kd
+        self.start = prm.add(c_start)
+        self.goal = prm.add(c_goal)
+        #self.path = self.search()
         
-    
     def dist(self, c1, c2):
         return np.linalg.norm(c2 - c1, ord=2)
     

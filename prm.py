@@ -44,25 +44,29 @@ class PRM:
     
     def add(self, c):
         """
-        Adds a particular configuration to the graph. The reason for having
-        this is so that the A* algorithm can call this to add a particular 
-        start and goal to the PRM graph. Assume a graph has already been 
-        constructed. Returns a boolean flag True is add was successful otherwise
-        False. 
+        Fill in some documentation later.
         """
         if self.collision_vectorized(c):
             print("This configuration is not in free-space.")
-            return False
+            return None 
         ds, js = self.valid_kd.query([c], k=self.K)
-        i = len(self.valid) # Assign c and index `i` in valid
+        i = len(self.nodes) # Assign c and index `i` in valid
+        self.nodes = np.vstack([self.nodes, c])
+        
+        successful_connection = False 
         for d, j in zip(ds[0], js[0]):
-            if not self.collision_between(c, self.valid[j, :]):
+            neighbor = self.nodes[j]
+            if not self.collision_between(c, neighbor):
                 self.connections.setdefault(i, []).append((j, d))
                 self.connections.setdefault(j, []).append((i, d))
-                return True
-            else:
-                print("This configuration has no valid neighbors.")
-                return False
+                successful_connection = True
+        if successful_connection:
+            self.valid_kd = KDTree(self.nodes)
+            return i
+        else:
+            self.nodes = self.nodes[:-1]
+            print("No valid neighbors found for this configuration")
+            return None 
 
     def collision_vectorized(self, c):
         """

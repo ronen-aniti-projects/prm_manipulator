@@ -15,10 +15,17 @@ def main():
     c_goal = c_start + np.pi/4
     astr = AStar(prm, c_start, c_goal)
     
+    
 
     # 2) For each PRM node, compute the end-effector (last link end) in world coords
     #    nodes: shape (100,6)
     nodes     = prm.nodes
+    
+    start_idx = astr.start 
+    goal_idx = astr.goal
+    ee_start = robot.generate_link_end_points(prm.nodes[start_idx])[-1]
+    ee_goal = robot.generate_link_end_points(prm.nodes[goal_idx])[-1]
+
     #    ee_positions: shape (100,3)
     ee_positions = np.array([
         robot.generate_link_end_points(q)[-1]   # p_L is the last row
@@ -44,6 +51,17 @@ def main():
                 [p0[2], p1[2]],
                 c='gray', linewidth=0.5, alpha=0.5
             )
+
+    # Start and goal end-effector positions
+    ax1.scatter(
+        ee_start[0], ee_start[1], ee_start[2],
+        c='green', s=100, label='Start EE', marker='^'
+    )
+    ax1.scatter(
+        ee_goal[0], ee_goal[1], ee_goal[2],
+        c='red', s=100, label='Goal EE', marker='X'
+    )
+
     ax1.set_title('PRM Roadmap: End Effector Positions')
     ax1.set_xlabel('X [m]')
     ax1.set_ylabel('Y [m]')
@@ -58,6 +76,27 @@ def main():
         q = prm.nodes[idx]
         links = robot.generate_link_end_points(q)
         ax2.plot(links[:,0], links[:,1], links[:,2], marker='o')
+
+    # Plot START robot configuration in green
+    start_links = robot.generate_link_end_points(prm.nodes[start_idx])
+    ax2.plot(
+        start_links[:,0], start_links[:,1], start_links[:,2],
+        c='green', marker='^', linewidth=2, label='Start Config'
+    )
+
+    # Plot GOAL robot configuration in red
+    goal_links = robot.generate_link_end_points(prm.nodes[goal_idx])
+    ax2.plot(
+        goal_links[:,0], goal_links[:,1], goal_links[:,2],
+        c='red', marker='X', linewidth=2, label='Goal Config'
+    )
+    ax2.set_title('Sample Robot Arm Configurations')
+    ax2.set_xlabel('X [m]')
+    ax2.set_ylabel('Y [m]')
+    ax2.set_zlabel('Z [m]')
+    ax2.set_box_aspect([1,1,1])
+    ax2.legend()
+
     """
     # Plot obstacles on the right plot too
     for obstacle in ob.obstacles:
