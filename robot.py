@@ -62,4 +62,5 @@ class RobotArm:
                 interpolated.append(segment_points)
             else:
                 interpolated.append(segment_points[1:])
-        return np.concatenate(interpolated, axis=0)
+        interpolated_array = np.concatenate(interpolated, axis=0)
+        return interpolated_array
