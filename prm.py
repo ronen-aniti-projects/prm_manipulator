@@ -1,0 +1,104 @@
+import numpy as np
+import matplotlib.pyplot as plt 
+from scipy.spatial import KDTree 
+import pdb
+
+class PRM:
+    def __init__(self, robot, obstacles, N=1000, K=6):
+        self.N = N
+        self.K = K
+        self.robot = robot
+        self.obstacles = obstacles
+        self.nodes, self.connections, self.valid_kd = self.construct() 
+
+    def construct(self):
+        # --- Generate N valid samples ---
+        valid = []
+        while len(valid) < self.N:
+            node = self.sample()
+            if self.collision_vectorized(node):
+                continue
+            valid.append(node)
+        
+        # --- Build KD Tree for valid samples ---
+        valid = np.array(valid)
+        valid_kd = KDTree(valid)
+        
+        # --- Connect each node with up to K neighbors ---
+        connections = dict()
+        for i, node in enumerate(valid):
+            print(f"Connecting Node {i}")
+            ds, js = valid_kd.query([node], k=self.K)
+            for d, j in zip(ds[0], js[0]):
+                if j == i or j < i:
+                    continue
+                c1 = valid[i, :]
+                c2 = valid[j, :]
+                if not self.collision_between(c1, c2):
+                    connections.setdefault(i, []).append((j, d))
+                    connections.setdefault(j, []).append((i, d))
+        return valid, connections, valid_kd
+
+    def sample(self):
+        return np.random.uniform(low=0.0, high=2*np.pi, size=(6,))
+    
+    def add(self, c):
+        """
+        Adds a particular configuration to the graph. The reason for having
+        this is so that the A* algorithm can call this to add a particular 
+        start and goal to the PRM graph. Assume a graph has already been 
+        constructed. Returns a boolean flag True is add was successful otherwise
+        False. 
+        """
+        if self.collision_vectorized(c):
+            print("This configuration is not in free-space.")
+            return False
+        ds, js = self.valid_kd.query([c], k=self.K)
+        i = len(self.valid) # Assign c and index `i` in valid
+        for d, j in zip(ds[0], js[0]):
+            if not self.collision_between(c, self.valid[j, :]):
+                self.connections.setdefault(i, []).append((j, d))
+                self.connections.setdefault(j, []).append((i, d))
+                return True
+            else:
+                print("This configuration has no valid neighbors.")
+                return False
+
+    def collision_vectorized(self, c):
+        """
+        Checks whether a given joint configuration is in free space. 
+        """
+        pts = self.robot.generate_interpolated_robot_points(c)
+        xs, ys, zs = pts[:, 0], pts[:, 1], pts[:, 2]
+        for xmin, ymin, zmin, xmax, ymax, zmax in self.obstacles:
+            collision = (
+                (xs >= xmin) & (xs <= xmax) &
+                (ys >= ymin) & (ys <= ymax) &
+                (zs >= zmin) & (zs <= zmax)
+            )
+            if collision.any():
+                return True
+        return False
+
+        
+    def collision_between(self, c1, c2, step=0.05):
+        """
+        Checks whether the interpolated path between two points in configuration space is entirely in free space. 
+        """
+        disp = c2 - c1
+        dist = np.linalg.norm(disp)
+        if dist == 0:
+            return False 
+        unit = disp / dist
+        # Assumes c1 and c2 exist in free space
+        for i in range(1, int(dist/step) + 1):
+            c = c1 + unit * step * i
+            #if self.collision(c):
+            #    return True
+            if self.collision_vectorized(c):
+                return True
+        return False
+    
+    def dist(self, c1, c2):
+        # Return the 2 norm of the c-space config
+        return np.linalg.norm(c2 - c1, ord=2)
