@@ -10,25 +10,22 @@ from robot import *
 
 PRM_NODES = 20
 
-
 def main():
+
     global PRM_NODES
 
-    # Copy and paste chatGPT code to run and visualize quickly:
-
-    # 1) Instantiate robot & PRM with a small sample size for quick visualization
+    # Initialize pertinent objects
     robot = RobotArm()
     ob = Obstacles()
     prm = PRM(robot, ob.obstacles, N=PRM_NODES, K=5)
+    
+    # Set the query config
     c_start = np.array([0, 0, 0, 0, 0, 0], dtype=float)
     c_goal = c_start + np.pi
+
     print(f"c_start: {c_start}")
     print(f"c_goal: {c_goal}")
-    
     astr = AStar(prm, c_start, c_goal)
-
-    # 2) For each PRM node, compute the end-effector (last link end) in world coords
-    #    nodes: shape (100,6)
     nodes = prm.nodes
 
     # for q in prm.nodes:
@@ -39,7 +36,7 @@ def main():
     ee_start = robot.generate_link_end_points(prm.nodes[start_idx])[-1]
     ee_goal = robot.generate_link_end_points(prm.nodes[goal_idx])[-1]
 
-    #    ee_positions: shape (100,3)
+    #    ee_positions
     ee_positions = np.array(
         [
             robot.generate_link_end_points(q)[-1]  # p_L is the last row
@@ -47,12 +44,10 @@ def main():
         ]
     )
 
-    if False:
+    if True:
         try:
-            # 3) Start a 1x2 subplot figure
             fig = plt.figure(figsize=(14, 6))
 
-            # --- Left plot: PRM end-effector roadmap ---
             ax1 = fig.add_subplot(121, projection="3d")
             ax1.scatter(
                 ee_positions[:, 0],
@@ -103,7 +98,6 @@ def main():
             ax1.legend()
             ax1.set_box_aspect([1, 1, 1])
 
-            # --- Right plot: full link visualizations for a few PRM nodes ---
             ax2 = fig.add_subplot(122, projection="3d")
             # sample_indices = np.random.choice(
             #     len(prm.nodes), size=min(5, len(prm.nodes)), replace=False
@@ -115,7 +109,8 @@ def main():
                 # q = prm.nodes[idx]
 
                 links = robot.generate_link_end_points(q)
-                ax2.plot(links[:, 0], links[:, 1], links[:, 2], marker="o")
+                ax2.plot(links[:, 0], links[:, 1], links[:, 2], marker="o",c="blue")
+                
 
             # Plot START robot configuration in green
             start_links = robot.generate_link_end_points(prm.nodes[start_idx])
@@ -179,7 +174,6 @@ def main():
 
             ax = fig.add_subplot(111, projection="3d")
 
-            # 4) Plot PRM nodes (end-effector positions)
             ax.scatter(
                 ee_positions[:, 0],  # x
                 ee_positions[:, 1],  # y
@@ -190,7 +184,6 @@ def main():
                 label="End Effector Positions",
             )
 
-            # 5) Plot edges: for each connection i→j, draw a thin line between EE_i and EE_j
             for i, nbrs in prm.connections.items():
                 p0 = ee_positions[i]
                 for j, _ in nbrs:
